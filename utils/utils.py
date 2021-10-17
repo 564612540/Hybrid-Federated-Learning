@@ -23,15 +23,16 @@ def add_args(parser):
     parser.add_argument('--classes_dir', type=str, default='./classes.txt', metavar='N', help='where is class partition file')
     parser.add_argument('--decay', type=str, default='./decay.txt', metavar='DEC', help='learning rate decay schedule file')
     parser.add_argument('--log_dir', type=str, default='./log', metavar='N', help='where is log file')
+    parser.add_argument('--tag', type=str, default='DE', metavar='T', help='task name')
     args = parser.parse_args()
-    args.logfile = args.log_dir+'/'+'M'+args.model+'_A'+str(args.num_agents)+'_B'+str(args.batch_size)+'_C'+str(args.comm_rounds)+'_LR'+str(args.lr)+'.csv'
+    args.logfile = args.log_dir+'/'+args.tag+'_M'+args.model+'_A'+str(args.num_agents)+'_B'+str(args.batch_size)+'_C'+str(args.comm_rounds)+'_V'+str(args.total_views)+'_LR'+str(args.lr)+'.csv'
 
     with open(args.logfile,'w') as fp:
         print('model, agent, batchsize, lr, comm_iter, local_iter, matching_iter',file= fp)
         print(args.model, args.num_agents, args.batch_size, args.lr, args.comm_rounds, args.local_iter, args.match_iter, sep=',', file = fp)
         print('iter, local_acc, local_loss, local_acc_post, local_loss_post, global_acc, global_loss', file=fp)
 
-    args.device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    args.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     # args.device = torch.device("cpu")
     if args.model.startswith('resnet18'):
         args.layer_num = 3

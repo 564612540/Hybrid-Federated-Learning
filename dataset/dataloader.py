@@ -29,7 +29,7 @@ class MultiviewImgDataset(torch.utils.data.Dataset):
         parent_dir = root_dir.rsplit('/',2)[0]
         self.filepaths = []
         for i in num_models:
-            all_files = sorted(glob.glob(parent_dir+'/'+self.classnames[i]+'/'+set_+'/*.jpg'))
+            all_files = sorted(glob.glob(parent_dir+'/'+self.classnames[i]+'/'+set_+'/*.png'))
             ## Select subset for different number of views
             # stride = int(12/self.num_views) # 12 6 4 3 2 1
             all_files_new = []

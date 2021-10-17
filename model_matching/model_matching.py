@@ -6,7 +6,7 @@ import time
 
 # logging.basicConfig(level = logging.DEBUG)
 logger = logging.getLogger('HFL.match')
-device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def matching_upd_j(weights_j, global_weights, sigma_inv_j, global_sigmas, prior_mean_norm, prior_inv_sigma,
                    popularity_counts, gamma, J):

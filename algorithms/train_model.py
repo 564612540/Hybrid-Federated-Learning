@@ -8,7 +8,8 @@ import logging
 # logging.basicConfig(level = logging.DEBUG)
 logger = logging.getLogger('HFL.train')
 
-def train_local(local_models, feature_extractors, num_views, dataloaders, train_index, args):
+def train_local(local_models, feature_extractors, num_views, dataloaders, train_index, args, global_model, matching_patterns):
+    mu = 0.5
     iters = []
     for model in local_models:
         model.train()
@@ -21,6 +22,10 @@ def train_local(local_models, feature_extractors, num_views, dataloaders, train_
             parameter_set |= set(feature_extractors[idx_i].parameters())
         iters.append(iter(dataloaders[idx]))
     
+    matching_patterns_1 = []
+    if matching_patterns is not None:
+        for idx in range(len(local_models)):
+            matching_patterns_1.append([lp[idx] for lp in matching_patterns])
     optimizer = optim.SGD(parameter_set, lr = args.lr, momentum=0.5)
     # optimizer = optim.RMSprop(parameter_set, lr = args.lr, alpha= 0.9, momentum=0.1)
     criterion = nn.CrossEntropyLoss()
@@ -46,6 +51,8 @@ def train_local(local_models, feature_extractors, num_views, dataloaders, train_
             concat_features=torch.cat(extracted_features, dim= 1)
             output = local_models[idx](concat_features)
             loss = criterion(output,targets)
+            if global_model is not None:
+                loss += mu*diff(local_models[idx], global_model, matching_patterns_1[idx],args.device)
             losses.append(loss.detach().to('cpu').numpy())
             _, predicted = torch.max(output.data, 1)
             correct += (predicted == targets).sum().item()
@@ -113,3 +120,20 @@ def compute_global_accuracy(global_model, feature_extractors, num_views, dataloa
         loss=local_loss/iter_num
     global_model.to('cpu')
     return accuracy,loss
+
+def diff(model_1, global_model, matching_pattern, device):
+    loss = 0
+    layer_num = 0
+    state_dict=model_1.state_dict()
+    # state_dict1=global_model.state_dict()
+    for layer_pattern_this, layer_pattern_next, layer_weight in zip(matching_pattern[:-1], matching_pattern[1:], global_model):
+        temp_layer_weights = layer_weight[layer_pattern_next,:]
+        local_weight = torch.from_numpy(temp_layer_weights[:,layer_pattern_this]).to(device)
+        local_bias = torch.from_numpy(layer_weight[layer_pattern_next, -1]).to(device)
+        for param_id, (k,v) in enumerate(state_dict.items()):
+            if (layer_num*2 == param_id):
+                loss+=torch.norm(v-local_weight)
+            elif(layer_num*2+1 == param_id):
+                loss+=torch.norm(v-local_bias.view(-1))
+        layer_num += 1
+    return loss
